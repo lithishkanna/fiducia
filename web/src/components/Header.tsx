@@ -1,17 +1,24 @@
 import React from 'react'
+import { Sun, Moon } from 'lucide-react'
 import type { Scenario } from '../types/replay'
 
 interface HeaderProps {
   currentStep: number
   totalSteps: number
   selectedScenario: Scenario | null
+  theme: 'light' | 'dark'
+  onToggleTheme: () => void
 }
 
 export const Header: React.FC<HeaderProps> = ({
   currentStep,
   totalSteps,
   selectedScenario,
+  theme,
+  onToggleTheme,
 }) => {
+  const isLight = theme === 'light'
+
   return (
     <header className="swiss-header">
       <div className="header-left">
@@ -29,26 +36,33 @@ export const Header: React.FC<HeaderProps> = ({
         </span>
       </div>
 
-      <div className="header-stats">
-        <div>
-          <span className="header-stat-label">TIMESTEP:</span>
-          <span className="header-stat-value">
-            {currentStep + 1} / {totalSteps || 1}
-          </span>
+      <div className="header-right">
+        <div style={{ display: 'flex', gap: '14px', fontFamily: 'var(--font-mono)', fontSize: '11px', marginRight: '6px' }}>
+          <div>
+            <span style={{ color: 'var(--text-muted)' }}>STEP: </span>
+            <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
+              {currentStep + 1}/{totalSteps || 1}
+            </span>
+          </div>
+          <div>
+            <span style={{ color: 'var(--text-muted)' }}>ENGINE: </span>
+            <span style={{ fontWeight: 600, color: 'var(--accent-blue)' }}>
+              ONLINE (:8000)
+            </span>
+          </div>
         </div>
-        <div>
-          <span className="header-stat-label">FEED:</span>
-          <span className="header-stat-value" style={{ color: '#10B981' }}>
-            {selectedScenario?.type === 'real' ? 'LIVE BINANCE L2 (2026.09.01)' : 'CURATED DEMO SCENARIO'}
-          </span>
-        </div>
-        <div>
-          <span className="header-stat-label">ENGINE:</span>
-          <span className="header-stat-value" style={{ color: '#3B82F6' }}>
-            ONLINE (:8000)
-          </span>
-        </div>
+
+        {/* Theme Toggle Button */}
+        <button
+          className="theme-toggle-btn"
+          onClick={onToggleTheme}
+          title={`Switch to ${isLight ? 'Dark Obsidian' : 'Light Frosted Glass'} theme`}
+        >
+          {isLight ? <Moon size={13} style={{ color: '#2563EB' }} /> : <Sun size={13} style={{ color: '#F0B90B' }} />}
+          <span>{isLight ? 'DARK OBSIDIAN' : 'LIGHT FROST'}</span>
+        </button>
       </div>
     </header>
   )
 }
+

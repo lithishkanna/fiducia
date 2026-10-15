@@ -6,6 +6,7 @@ interface HeatmapChartProps {
   currentIdx: number
   windowSize?: number
   showFootprintHeatmap?: boolean
+  theme?: 'light' | 'dark'
 }
 
 export const HeatmapChart: React.FC<HeatmapChartProps> = ({
@@ -13,9 +14,11 @@ export const HeatmapChart: React.FC<HeatmapChartProps> = ({
   currentIdx,
   windowSize = 35,
   showFootprintHeatmap = true,
+  theme = 'dark',
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const containerRef = useRef<HTMLDivElement | null>(null)
+  const isLight = theme === 'light'
   const [hoverInfo, setHoverInfo] = useState<{
     x: number
     y: number
@@ -54,8 +57,9 @@ export const HeatmapChart: React.FC<HeatmapChartProps> = ({
     const plotLeft = 15
 
     // Clear background
-    ctx.fillStyle = '#0B0E14'
+    ctx.fillStyle = isLight ? '#FFFFFF' : '#0B0E14'
     ctx.fillRect(0, 0, width, height)
+
 
     // Price Grid Definition around current mid
     const currentMid = currentFrame.mid_price
@@ -115,10 +119,11 @@ export const HeatmapChart: React.FC<HeatmapChartProps> = ({
     })
 
     // 2. Grid lines & Price Axis
-    ctx.strokeStyle = '#181F2C'
+    ctx.strokeStyle = isLight ? 'rgba(0, 0, 0, 0.06)' : '#181F2C'
     ctx.lineWidth = 1
-    ctx.fillStyle = '#64748B'
+    ctx.fillStyle = isLight ? '#64748B' : '#94A3B8'
     ctx.font = '10px "JetBrains Mono", monospace'
+
 
     // Horizontal price grid lines
     const numPriceLines = 10
@@ -290,20 +295,21 @@ export const HeatmapChart: React.FC<HeatmapChartProps> = ({
 
     // 7. Bottom OFI & Volume Delta Subplot
     const bottomTop = mainHeight + 20
-    ctx.fillStyle = '#0E131C'
+    ctx.fillStyle = isLight ? '#F1F5F9' : '#0E131C'
     ctx.fillRect(plotLeft, bottomTop, plotWidth, bottomHeight)
 
-    ctx.strokeStyle = '#181F2C'
+    ctx.strokeStyle = isLight ? 'rgba(0, 0, 0, 0.08)' : '#181F2C'
     ctx.lineWidth = 1
     ctx.strokeRect(plotLeft, bottomTop, plotWidth, bottomHeight)
 
     // Zero center line
     const zeroY = bottomTop + bottomHeight / 2
-    ctx.strokeStyle = '#283348'
+    ctx.strokeStyle = isLight ? 'rgba(0, 0, 0, 0.15)' : '#283348'
     ctx.beginPath()
     ctx.moveTo(plotLeft, zeroY)
     ctx.lineTo(plotLeft + plotWidth, zeroY)
     ctx.stroke()
+
 
     // OFI bars
     const maxAbsOfi = Math.max(
