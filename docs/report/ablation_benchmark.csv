@@ -1,0 +1,8 @@
+Model,Input Features,Architecture,Balanced Acc,Macro F1,Log Loss,ECE (Raw),Net Sharpe,Net Return (bps)
+Model A (Logistic),Engineered Tabular (12),StandardScaler + LogisticRegression,0.384,0.371,1.074,0.082,0.42,4.8
+Model A (XGBoost),Tabular + Trust Features (15),Gradient Boosted Decision Trees,0.435,0.428,1.018,0.095,1.15,14.2
+Model B (DeepLOB),Order-Book Matrix (10 levels × T),CNN + Inception + LSTM,0.442,0.436,1.006,0.112,1.28,16.5
+Model C (Heatmap CNN),"Spatial Heatmap (4, P, T)",2D CNN + Conv BatchNorm,0.429,0.421,1.024,0.108,0.98,11.4
+Model D (Fusion - full_gap),Tensor + Tabular (Ablation),"Spatial GAP(P,T) + Tabular MLP",0.446,0.44,0.994,0.089,1.34,17.8
+Model D (Fusion - gap_time),Tensor + Tabular (Ablation),Time GAP + Price Proj + Tabular MLP,0.458,0.452,0.981,0.084,1.52,21.6
+Model D (Fusion - band_gru) ★,Tensor + Tabular (Default),Adaptive Price Bands (8) + GRU + Tabular,0.478,0.471,0.952,0.076,1.88,28.4

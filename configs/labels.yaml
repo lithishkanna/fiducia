@@ -1,0 +1,11 @@
+# Triple-Barrier Labeling & Fee Assumptions
+labeling:
+  barrier_k: 1.5                    # Multiplier for barrier width
+  vertical_barrier_sec: 15          # Max horizon in seconds (5-30s range)
+  maker_fee_bps: 2.0                # Maker fee (0.02% = 2.0 bps)
+  taker_fee_bps: 5.0                # Taker fee (0.05% = 5.0 bps)
+  half_spread_buffer_bps: 0.5       # Half-spread estimation
+  classes:
+    - -1  # DOWN
+    - 0   # NEUTRAL
+    - 1   # UP

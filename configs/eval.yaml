@@ -1,0 +1,23 @@
+# Evaluation, Backtest & Calibration Configurations
+splits:
+  n_splits: 5
+  purge_gap_sec: 30       # Purge gap must be >= max label horizon (30s)
+  test_ratio: 0.20        # Final untouched test set fraction
+
+backtest:
+  initial_capital: 10000.0
+  slippage_bps: 1.0       # 1 bps execution slippage penalty
+  position_limit: 1.0     # Max position in BTC
+  fee_scenarios:
+    maker_maker: {entry_fee_bps: 2.0, exit_fee_bps: 2.0}
+    taker_taker: {entry_fee_bps: 5.0, exit_fee_bps: 5.0}
+    maker_taker: {entry_fee_bps: 2.0, exit_fee_bps: 5.0}
+
+abstention:
+  min_ev_bps: 0.5         # Minimum expected value after fees & slippage
+  min_confidence: 0.60    # Minimum calibrated probability threshold
+
+bootstrap:
+  n_bootstraps: 1000
+  block_length_sec: 300
+  confidence_level: 0.95

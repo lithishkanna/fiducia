@@ -1,0 +1,47 @@
+# Model Architecture & Hyperparameter Configurations
+seed: 42
+
+logistic_regression:
+  C: 1.0
+  max_iter: 1000
+  class_weight: "balanced"
+
+xgboost:
+  n_estimators: 300
+  max_depth: 6
+  learning_rate: 0.05
+  subsample: 0.8
+  colsample_bytree: 0.8
+  eval_metric: "mlogloss"
+
+deeplob:
+  conv_filters: 32
+  lstm_hidden: 64
+  dropout: 0.2
+  learning_rate: 1.0e-3
+  batch_size: 64
+  epochs: 50
+
+heatmap_cnn:
+  num_filters: [32, 64]
+  fc_dim: 128
+  dropout: 0.3
+  learning_rate: 1.0e-3
+  batch_size: 64
+  epochs: 50
+
+fusion:
+  spatial_dim: 64
+  tabular_dim: 64
+  fused_dim: 128
+  pooling_variant: "band_gru"  # Options: band_gru, gap_time, full_gap
+  dropout: 0.3
+  learning_rate: 5.0e-4
+  batch_size: 64
+  epochs: 50
+
+trust_model:
+  n_estimators: 200
+  max_depth: 5
+  learning_rate: 0.05
+  calibration_method: "sigmoid"

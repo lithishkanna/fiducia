@@ -1,0 +1,20 @@
+# Data Recording & Stream Configurations
+symbol: "BTCUSDT"
+ws_base_url: "wss://fstream.binance.com/ws"
+rest_base_url: "https://fapi.binance.com"
+diff_depth_stream: "btcusdt@depth@100ms"
+agg_trade_stream: "btcusdt@aggTrade"
+
+storage:
+  raw_dir: "data/raw"
+  interim_dir: "data/interim"
+  processed_dir: "data/processed"
+  batch_size: 1000
+  rotation_hours: 1
+  compression: "zstd"
+
+sync:
+  max_buffer_size: 10000
+  snapshot_limit: 1000
+  reconnect_backoff_initial: 1.0
+  reconnect_backoff_max: 30.0

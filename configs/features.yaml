@@ -1,0 +1,20 @@
+# Feature Engineering & Tensor Construction Configurations
+sampling_grid_ms: 500  # Resample grid (500 ms)
+
+tabular:
+  windows_sec: [1, 5, 10, 30, 60]  # Rolling window sizes
+  depth_levels: 10                   # Top-N levels for imbalance & OFI
+  ofi_levels: 5                      # Order flow imbalance levels
+
+tensor:
+  time_steps: 60                     # T = 60 steps (30s at 500ms grid)
+  price_bins: 100                    # P = 100 relative price ticks
+  price_tick_size: 0.10              # BTCUSDT min tick size ($0.10)
+  channels: ["bid_qty", "ask_qty", "buy_vol", "sell_vol"]
+  log_transform: true
+
+walls:
+  median_window_sec: 300             # 5 min window for median depth
+  wall_threshold_multiplier: 5.0    # 5x local median volume to qualify as a wall
+  flicker_window_sec: 10             # Window to detect wall cancel/re-add flicker
+  proximity_ticks: 10                # Ticks near mid to track approach behavior
