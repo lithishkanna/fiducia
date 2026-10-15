@@ -11,11 +11,10 @@ builds triple-barrier labels, and trains:
 
 import json
 import logging
-import os
 import sys
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Tuple
 
 import joblib
 import numpy as np
@@ -30,19 +29,18 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from book.orderbook import OrderBook
-from eval.abstention import apply_abstention_rule, compute_expected_value
+from eval.abstention import apply_abstention_rule
 from eval.backtest import EventDrivenBacktester, FeeScenario
 from eval.calibration import TemperatureScaler, compute_calibration_metrics
 from eval.splits import create_train_test_split
 from features.labels import generate_triple_barrier_labels
 from features.tabular import compute_tabular_features
 from features.tensor import HeatmapTensorBuilder, TensorNormalizer
-from features.walls import WallRecord, WallTracker, compute_wall_trust_features
-from models.baselines import TabularBaselineModel, decode_labels, encode_labels, evaluate_classifier
+from features.walls import WallRecord, WallTracker
+from models.baselines import TabularBaselineModel, evaluate_classifier
 from models.datasets import HeatmapDataset
 from models.heatmap_cnn import HeatmapCNN
 from models.trust import (
-    WALL_FEATURE_NAMES,
     WallTrustModel,
     compute_trust_decile_analysis,
     extract_wall_feature_vector,
@@ -76,10 +74,15 @@ def verify_raw_data_files(book_path: str, trades_path: str) -> bool:
     required_trade_cols = {"timestamp", "side", "price", "amount"}
 
     if not required_book_cols.issubset(set(df_book_head.columns)):
-        logger.error("Book CSV missing required columns: %s", required_book_cols - set(df_book_head.columns))
+        logger.error(
+            "Book CSV missing required columns: %s", required_book_cols - set(df_book_head.columns)
+        )
         return False
     if not required_trade_cols.issubset(set(df_trades_head.columns)):
-        logger.error("Trades CSV missing required columns: %s", required_trade_cols - set(df_trades_head.columns))
+        logger.error(
+            "Trades CSV missing required columns: %s",
+            required_trade_cols - set(df_trades_head.columns),
+        )
         return False
 
     logger.info("Data verification passed: Schemas and headers match Binance Futures format.")
@@ -225,10 +228,10 @@ def ingest_and_reconstruct_book(
 
                     # Add top-10 levels
                     for lvl_idx in range(10):
-                        row_data[f"bid_price_{lvl_idx+1}"] = bids[lvl_idx][0]
-                        row_data[f"bid_qty_{lvl_idx+1}"] = bids[lvl_idx][1]
-                        row_data[f"ask_price_{lvl_idx+1}"] = asks[lvl_idx][0]
-                        row_data[f"ask_qty_{lvl_idx+1}"] = asks[lvl_idx][1]
+                        row_data[f"bid_price_{lvl_idx + 1}"] = bids[lvl_idx][0]
+                        row_data[f"bid_qty_{lvl_idx + 1}"] = bids[lvl_idx][1]
+                        row_data[f"ask_price_{lvl_idx + 1}"] = asks[lvl_idx][0]
+                        row_data[f"ask_qty_{lvl_idx + 1}"] = asks[lvl_idx][1]
 
                     grid_rows.append(row_data)
 
@@ -270,7 +273,9 @@ def ingest_and_reconstruct_book(
 
 def build_feature_table(df_grid: pl.DataFrame) -> pl.DataFrame:
     """Compute comprehensive tabular features across all engineered modules."""
-    logger.info("Computing engineered order-flow features (OFI, depth imbalance, spread, returns, volatility)...")
+    logger.info(
+        "Computing engineered order-flow features (OFI, depth imbalance, spread, returns, volatility)..."
+    )
     df = compute_tabular_features(df_grid)
     df = df.fill_nan(0.0).fill_null(0.0)
     logger.info("Feature engineering complete: %d columns generated.", len(df.columns))
@@ -285,7 +290,9 @@ def train_wall_trust_model(
     """Train gradient-boosted wall trust model with calibrated 0-100 scores."""
     logger.info("=== STEP 3: Training Wall Trust Model ===")
     if len(walls) < 50:
-        logger.warning("Low wall sample count (%d), generating augmented calibration records.", len(walls))
+        logger.warning(
+            "Low wall sample count (%d), generating augmented calibration records.", len(walls)
+        )
 
     X = np.array([extract_wall_feature_vector(w) for w in walls], dtype=np.float32)
     y = np.array(labels, dtype=int)
@@ -389,7 +396,9 @@ def main():
 
     # Train / Test split with 30-second purge gap
     timestamps = df_dataset["timestamp_ms"].to_numpy()
-    train_indices, test_indices, _ = create_train_test_split(timestamps, test_ratio=0.25, purge_gap_sec=30.0)
+    train_indices, test_indices, _ = create_train_test_split(
+        timestamps, test_ratio=0.25, purge_gap_sec=30.0
+    )
 
     X_train, y_train = X[train_indices].copy(), y[train_indices].copy()
     X_test, y_test = X[test_indices].copy(), y[test_indices].copy()
@@ -526,7 +535,9 @@ def main():
     calib_before = compute_calibration_metrics(xgb_probs, y_test)
     calib_after = compute_calibration_metrics(calibrated_probs, y_test)
 
-    logger.info("ECE before calibration: %.4f -> after calibration: %.4f", calib_before.ece, calib_after.ece)
+    logger.info(
+        "ECE before calibration: %.4f -> after calibration: %.4f", calib_before.ece, calib_after.ece
+    )
     logger.info("Optimal Temperature parameter T: %.3f", scaler.temperature)
 
     # Save calibration parameters
@@ -535,7 +546,9 @@ def main():
 
     # Step 9: Event-Driven Backtest with Abstention
     logger.info("=== STEP 7: Backtest with vs. without Abstention ===")
-    fee_scenario = FeeScenario(name="vip0_taker", entry_fee_bps=4.0, exit_fee_bps=4.0, slippage_bps=1.0)
+    fee_scenario = FeeScenario(
+        name="vip0_taker", entry_fee_bps=4.0, exit_fee_bps=4.0, slippage_bps=1.0
+    )
     backtester_raw = EventDrivenBacktester(fee_scenario=fee_scenario)
     result_raw = backtester_raw.run(ts_test, mids_test, xgb_preds)
 
@@ -595,9 +608,9 @@ def main():
 
 | Model | Accuracy | Macro F1 | ECE (Calibration) |
 |---|:---:|:---:|:---:|
-| **Model A (XGBoost)** | **{xgb_metrics['accuracy']:.3f}** | **{xgb_metrics['macro_f1']:.3f}** | {calib_before.ece:.4f} |
-| **Model A (Calibrated)** | **{xgb_metrics['accuracy']:.3f}** | **{xgb_metrics['macro_f1']:.3f}** | **{calib_after.ece:.4f}** |
-| **Model A (Logistic)** | {lr_metrics['accuracy']:.3f} | {lr_metrics['macro_f1']:.3f} | - |
+| **Model A (XGBoost)** | **{xgb_metrics["accuracy"]:.3f}** | **{xgb_metrics["macro_f1"]:.3f}** | {calib_before.ece:.4f} |
+| **Model A (Calibrated)** | **{xgb_metrics["accuracy"]:.3f}** | **{xgb_metrics["macro_f1"]:.3f}** | **{calib_after.ece:.4f}** |
+| **Model A (Logistic)** | {lr_metrics["accuracy"]:.3f} | {lr_metrics["macro_f1"]:.3f} | - |
 | **Model C (Heatmap CNN)** | {cnn_acc:.3f} | - | - |
 
 ---
@@ -606,8 +619,8 @@ def main():
 
 | Strategy | Trades | Win Rate | Net PnL | Max Drawdown |
 |---|:---:|:---:|:---:|:---:|
-| **Always Trading (No Abstention)** | {result_raw.total_trades} | {result_raw.win_rate*100:.1f}% | ${result_raw.net_pnl:.2f} | {result_raw.max_drawdown_pct*100:.2f}% |
-| **With Abstention (NO TRADE)** | {result_abstain.total_trades} | **{result_abstain.win_rate*100:.1f}%** | **${result_abstain.net_pnl:.2f}** | **{result_abstain.max_drawdown_pct*100:.2f}%** |
+| **Always Trading (No Abstention)** | {result_raw.total_trades} | {result_raw.win_rate * 100:.1f}% | ${result_raw.net_pnl:.2f} | {result_raw.max_drawdown_pct * 100:.2f}% |
+| **With Abstention (NO TRADE)** | {result_abstain.total_trades} | **{result_abstain.win_rate * 100:.1f}%** | **${result_abstain.net_pnl:.2f}** | **{result_abstain.max_drawdown_pct * 100:.2f}%** |
 
 ---
 *Notice: This system is a research decision-support framework. Past backtest results do not imply future trading profitability.*

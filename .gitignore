@@ -48,5 +48,6 @@ data/interim/*
 !data/interim/.gitkeep
 data/processed/*
 !data/processed/.gitkeep
+!data/processed/real_features_labels.parquet
 *.log
 *.csv

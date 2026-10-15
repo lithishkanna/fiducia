@@ -141,35 +141,41 @@ def generate_bait_wall_clip(num_steps: int = 60, seed: int = 42) -> pd.DataFrame
             wall_explanations=[wall_expl] if wall_present or t < 48 else [],
         )
 
-        records.append({
-            "timestamp_ms": base_time + t * 100,
-            "mid_price": mid,
-            "best_bid": levels["bid_prices"][0],
-            "best_ask": levels["ask_prices"][0],
-            "bid_prices": json.dumps(levels["bid_prices"]),
-            "bid_sizes": json.dumps(levels["bid_sizes"]),
-            "ask_prices": json.dumps(levels["ask_prices"]),
-            "ask_sizes": json.dumps(levels["ask_sizes"]),
-            "active_walls": json.dumps([{
-                "price": wall_price,
-                "side": "ask",
-                "size": current_wall_size,
-                "trust_score": trust_score,
-                "flicker_count": flicker_count,
-                "fill_ratio": 0.0,
-                "is_present": wall_present,
-            }]),
-            "ofi": ofi,
-            "depth_imbalance": 0.25 if not wall_present else -0.35,
-            "prob_down": p_down,
-            "prob_neutral": p_neutral,
-            "prob_up": p_up,
-            "expected_value_bps": ev,
-            "action": action,
-            "action_label": diagnostic.action_label,
-            "diagnostic_summary": diagnostic.summary_text,
-            "scenario": "bait_wall",
-        })
+        records.append(
+            {
+                "timestamp_ms": base_time + t * 100,
+                "mid_price": mid,
+                "best_bid": levels["bid_prices"][0],
+                "best_ask": levels["ask_prices"][0],
+                "bid_prices": json.dumps(levels["bid_prices"]),
+                "bid_sizes": json.dumps(levels["bid_sizes"]),
+                "ask_prices": json.dumps(levels["ask_prices"]),
+                "ask_sizes": json.dumps(levels["ask_sizes"]),
+                "active_walls": json.dumps(
+                    [
+                        {
+                            "price": wall_price,
+                            "side": "ask",
+                            "size": current_wall_size,
+                            "trust_score": trust_score,
+                            "flicker_count": flicker_count,
+                            "fill_ratio": 0.0,
+                            "is_present": wall_present,
+                        }
+                    ]
+                ),
+                "ofi": ofi,
+                "depth_imbalance": 0.25 if not wall_present else -0.35,
+                "prob_down": p_down,
+                "prob_neutral": p_neutral,
+                "prob_up": p_up,
+                "expected_value_bps": ev,
+                "action": action,
+                "action_label": diagnostic.action_label,
+                "diagnostic_summary": diagnostic.summary_text,
+                "scenario": "bait_wall",
+            }
+        )
 
     return pd.DataFrame(records)
 
@@ -240,35 +246,41 @@ def generate_real_wall_clip(num_steps: int = 60, seed: int = 101) -> pd.DataFram
             wall_explanations=[wall_expl],
         )
 
-        records.append({
-            "timestamp_ms": base_time + t * 100,
-            "mid_price": mid,
-            "best_bid": levels["bid_prices"][0],
-            "best_ask": levels["ask_prices"][0],
-            "bid_prices": json.dumps(levels["bid_prices"]),
-            "bid_sizes": json.dumps(levels["bid_sizes"]),
-            "ask_prices": json.dumps(levels["ask_prices"]),
-            "ask_sizes": json.dumps(levels["ask_sizes"]),
-            "active_walls": json.dumps([{
-                "price": wall_price,
-                "side": "bid",
-                "size": remaining_wall_size,
-                "trust_score": trust_score,
-                "flicker_count": 0,
-                "fill_ratio": fill_ratio,
-                "is_present": True,
-            }]),
-            "ofi": ofi,
-            "depth_imbalance": 0.42,
-            "prob_down": p_down,
-            "prob_neutral": p_neutral,
-            "prob_up": p_up,
-            "expected_value_bps": ev,
-            "action": action,
-            "action_label": diagnostic.action_label,
-            "diagnostic_summary": diagnostic.summary_text,
-            "scenario": "real_wall",
-        })
+        records.append(
+            {
+                "timestamp_ms": base_time + t * 100,
+                "mid_price": mid,
+                "best_bid": levels["bid_prices"][0],
+                "best_ask": levels["ask_prices"][0],
+                "bid_prices": json.dumps(levels["bid_prices"]),
+                "bid_sizes": json.dumps(levels["bid_sizes"]),
+                "ask_prices": json.dumps(levels["ask_prices"]),
+                "ask_sizes": json.dumps(levels["ask_sizes"]),
+                "active_walls": json.dumps(
+                    [
+                        {
+                            "price": wall_price,
+                            "side": "bid",
+                            "size": remaining_wall_size,
+                            "trust_score": trust_score,
+                            "flicker_count": 0,
+                            "fill_ratio": fill_ratio,
+                            "is_present": True,
+                        }
+                    ]
+                ),
+                "ofi": ofi,
+                "depth_imbalance": 0.42,
+                "prob_down": p_down,
+                "prob_neutral": p_neutral,
+                "prob_up": p_up,
+                "expected_value_bps": ev,
+                "action": action,
+                "action_label": diagnostic.action_label,
+                "diagnostic_summary": diagnostic.summary_text,
+                "scenario": "real_wall",
+            }
+        )
 
     return pd.DataFrame(records)
 
@@ -318,27 +330,29 @@ def generate_no_trade_abstention_clip(num_steps: int = 60, seed: int = 202) -> p
             abstention_reason="expected value (-1.25 bps) below cost hurdle (7.0 bps)",
         )
 
-        records.append({
-            "timestamp_ms": base_time + t * 100,
-            "mid_price": mid,
-            "best_bid": levels["bid_prices"][0],
-            "best_ask": levels["ask_prices"][0],
-            "bid_prices": json.dumps(levels["bid_prices"]),
-            "bid_sizes": json.dumps(levels["bid_sizes"]),
-            "ask_prices": json.dumps(levels["ask_prices"]),
-            "ask_sizes": json.dumps(levels["ask_sizes"]),
-            "active_walls": json.dumps([]),
-            "ofi": ofi,
-            "depth_imbalance": depth_imbalance,
-            "prob_down": p_down,
-            "prob_neutral": p_neutral,
-            "prob_up": p_up,
-            "expected_value_bps": ev,
-            "action": action,
-            "action_label": diagnostic.action_label,
-            "diagnostic_summary": diagnostic.summary_text,
-            "scenario": "no_trade_abstention",
-        })
+        records.append(
+            {
+                "timestamp_ms": base_time + t * 100,
+                "mid_price": mid,
+                "best_bid": levels["bid_prices"][0],
+                "best_ask": levels["ask_prices"][0],
+                "bid_prices": json.dumps(levels["bid_prices"]),
+                "bid_sizes": json.dumps(levels["bid_sizes"]),
+                "ask_prices": json.dumps(levels["ask_prices"]),
+                "ask_sizes": json.dumps(levels["ask_sizes"]),
+                "active_walls": json.dumps([]),
+                "ofi": ofi,
+                "depth_imbalance": depth_imbalance,
+                "prob_down": p_down,
+                "prob_neutral": p_neutral,
+                "prob_up": p_up,
+                "expected_value_bps": ev,
+                "action": action,
+                "action_label": diagnostic.action_label,
+                "diagnostic_summary": diagnostic.summary_text,
+                "scenario": "no_trade_abstention",
+            }
+        )
 
     return pd.DataFrame(records)
 
@@ -414,33 +428,41 @@ def generate_failed_signal_clip(num_steps: int = 60, seed: int = 303) -> pd.Data
             ),
         )
 
-        records.append({
-            "timestamp_ms": base_time + t * 100,
-            "mid_price": mid,
-            "best_bid": levels["bid_prices"][0],
-            "best_ask": levels["ask_prices"][0],
-            "bid_prices": json.dumps(levels["bid_prices"]),
-            "bid_sizes": json.dumps(levels["bid_sizes"]),
-            "ask_prices": json.dumps(levels["ask_prices"]),
-            "ask_sizes": json.dumps(levels["ask_sizes"]),
-            "active_walls": json.dumps([{
-                "price": wall_price,
-                "side": "bid",
-                "size": wall_size,
-                "trust_score": trust,
-                "is_present": wall_intact,
-            }]) if wall_intact else json.dumps([]),
-            "ofi": -1.8 if t >= 25 else 0.8,
-            "depth_imbalance": -0.55 if t >= 25 else 0.35,
-            "prob_down": p_down,
-            "prob_neutral": p_neutral,
-            "prob_up": p_up,
-            "expected_value_bps": ev,
-            "action": action,
-            "action_label": diagnostic.action_label,
-            "diagnostic_summary": diagnostic.summary_text,
-            "scenario": "failed_signal",
-        })
+        records.append(
+            {
+                "timestamp_ms": base_time + t * 100,
+                "mid_price": mid,
+                "best_bid": levels["bid_prices"][0],
+                "best_ask": levels["ask_prices"][0],
+                "bid_prices": json.dumps(levels["bid_prices"]),
+                "bid_sizes": json.dumps(levels["bid_sizes"]),
+                "ask_prices": json.dumps(levels["ask_prices"]),
+                "ask_sizes": json.dumps(levels["ask_sizes"]),
+                "active_walls": json.dumps(
+                    [
+                        {
+                            "price": wall_price,
+                            "side": "bid",
+                            "size": wall_size,
+                            "trust_score": trust,
+                            "is_present": wall_intact,
+                        }
+                    ]
+                )
+                if wall_intact
+                else json.dumps([]),
+                "ofi": -1.8 if t >= 25 else 0.8,
+                "depth_imbalance": -0.55 if t >= 25 else 0.35,
+                "prob_down": p_down,
+                "prob_neutral": p_neutral,
+                "prob_up": p_up,
+                "expected_value_bps": ev,
+                "action": action,
+                "action_label": diagnostic.action_label,
+                "diagnostic_summary": diagnostic.summary_text,
+                "scenario": "failed_signal",
+            }
+        )
 
     return pd.DataFrame(records)
 
