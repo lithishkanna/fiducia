@@ -2,16 +2,19 @@
 
 Provides REST endpoints for:
 - Health checks and model readiness.
+- Model registry and architectures metadata (/api/models).
 - Available replay data scenarios (Real Binance Futures L2 and Curated clips).
 - Time-series replay frames with bid/ask depth grids, OHLC candlesticks,
-  active wall trust classifications, and calibrated probability predictions.
+  active wall trust classifications, and calibrated probability predictions
+  dynamically evaluated across XGBoost, DeepLOB, Multimodal Fusion, LightGBM,
+  and Meta-Ensemble architectures.
 """
 
 from __future__ import annotations
 
 import json
 import logging
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 import pandas as pd
 from starlette.applications import Starlette
@@ -23,12 +26,16 @@ from starlette.routing import Route
 
 from dashboard.sample_data import load_sample_clip
 from dashboard.ui_components import aggregate_ohlc_candles, load_real_binance_clip
+from web_api.predictor import MODELS_METADATA, MultiModelInferenceEngine
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
 # In-memory clip cache to ensure sub-millisecond API responses
 CLIP_CACHE: Dict[str, pd.DataFrame] = {}
+
+# Initialize multi-model inference engine
+MODEL_ENGINE = MultiModelInferenceEngine()
 
 
 def get_or_load_clip(scenario: str) -> pd.DataFrame:
@@ -53,7 +60,13 @@ def get_or_load_clip(scenario: str) -> pd.DataFrame:
     return df
 
 
-def serialize_frame(row: pd.Series, idx: int, total_steps: int) -> Dict[str, Any]:
+def serialize_frame(
+    row: pd.Series,
+    idx: int,
+    total_steps: int,
+    pred_override: Optional[Dict[str, Any]] = None,
+    model_id: str = "ensemble",
+) -> Dict[str, Any]:
     """Serialize a single replay row into a rich JSON structure for the React frontend."""
     mid = float(row["mid_price"])
     best_bid = float(row.get("best_bid", mid - 0.25))
@@ -79,7 +92,6 @@ def serialize_frame(row: pd.Series, idx: int, total_steps: int) -> Dict[str, Any
         depth_levels.append({"price": round(float(p), 2), "size": float(s), "side": "ask"})
 
     # Candle OHLC representation for this step
-    # For micro-level candle, low is bid, high is ask, open and close from mid
     c_open = round(mid, 2)
     c_close = round(mid, 2)
     c_high = round(max(mid, best_ask), 2)
@@ -91,14 +103,33 @@ def serialize_frame(row: pd.Series, idx: int, total_steps: int) -> Dict[str, Any
     buy_vol = float(row.get("buy_volume", 0.5))
     sell_vol = float(row.get("sell_volume", 0.5))
 
-    p_down = float(row.get("prob_down", 0.33))
-    p_neutral = float(row.get("prob_neutral", 0.34))
-    p_up = float(row.get("prob_up", 0.33))
-    ev = float(row.get("expected_value_bps", 0.0))
-    action = int(row.get("action", 0))
-    action_label = str(row.get("action_label", "NO TRADE (ABSTAIN)"))
+    # Incorporate predictions from selected model architecture
+    if pred_override:
+        p_down = float(pred_override["prob_down"])
+        p_neutral = float(pred_override["prob_neutral"])
+        p_up = float(pred_override["prob_up"])
+        ev = float(pred_override["expected_value_bps"])
+        action = int(pred_override["action"])
+        action_label = str(pred_override["action_label"])
+    else:
+        p_down = float(row.get("prob_down", 0.33))
+        p_neutral = float(row.get("prob_neutral", 0.34))
+        p_up = float(row.get("prob_up", 0.33))
+        ev = float(row.get("expected_value_bps", 0.0))
+        action = int(row.get("action", 0))
+        action_label = str(row.get("action_label", "NO TRADE (ABSTAIN)"))
+
     ofi = float(row.get("ofi", 0.0))
     depth_imb = float(row.get("depth_imbalance", 0.0))
+
+    model_label = model_id.upper()
+    diag_summary = str(row.get("diagnostic_summary", ""))
+    if action == 1:
+        diag_summary = f"[{model_label}] Upward order flow imbalance (+{p_up * 100:.1f}% confidence). Net EV: +{ev:.2f} bps exceeds taker hurdle."
+    elif action == -1:
+        diag_summary = f"[{model_label}] Aggressive sell sweep (+{p_down * 100:.1f}% confidence). Net EV: +{ev:.2f} bps exceeds taker hurdle."
+    else:
+        diag_summary = f"[{model_label}] Neutral microstructure regime or net EV (+{ev:.2f} bps) below 2.0 bps friction barrier."
 
     shap_features = [
         {"feature": "Order Flow Imbalance", "shap_value": round(ofi * 0.12, 3)},
@@ -107,8 +138,8 @@ def serialize_frame(row: pd.Series, idx: int, total_steps: int) -> Dict[str, Any
             "feature": "Wall Trust Imbalance",
             "shap_value": 0.24 if action == 1 else (-0.20 if action == -1 else -0.05),
         },
-        {"feature": "Recent Volatility", "shap_value": round(float(row.get("volatility_lag_20", 0.02)) * 4.0, 3)},
-        {"feature": "Spread Friction", "shap_value": -0.08},
+        {"feature": "Model Calibration Factor", "shap_value": round((p_up - p_down) * 0.25, 3)},
+        {"feature": "Spread Friction Barrier", "shap_value": -0.08},
     ]
 
     return {
@@ -140,7 +171,7 @@ def serialize_frame(row: pd.Series, idx: int, total_steps: int) -> Dict[str, Any
         "expected_value_bps": round(ev, 2),
         "action": action,
         "action_label": action_label,
-        "diagnostic_summary": str(row.get("diagnostic_summary", "")),
+        "diagnostic_summary": diag_summary,
         "shap_features": shap_features,
     }
 
@@ -154,9 +185,14 @@ async def handle_health(request: Request) -> JSONResponse:
     return JSONResponse({
         "status": "ok",
         "service": "fiducia-liquidity-trust-api",
-        "version": "1.0.0",
-        "engine": "Binance Futures L2 Live Replay & Inference Engine",
+        "version": "1.1.0",
+        "engine": "Binance Futures L2 Multi-Model Replay & Inference Engine",
     })
+
+
+async def handle_models(request: Request) -> JSONResponse:
+    """Return available model architectures and their benchmark metrics."""
+    return JSONResponse({"models": MODELS_METADATA})
 
 
 async def handle_scenarios(request: Request) -> JSONResponse:
@@ -202,8 +238,9 @@ async def handle_scenarios(request: Request) -> JSONResponse:
 
 
 async def handle_replay(request: Request) -> JSONResponse:
-    """Return array of replay frames for given scenario, offset, and limit."""
+    """Return array of replay frames for given scenario, offset, limit, and model."""
     scenario = request.query_params.get("scenario", "real_binance")
+    model_id = request.query_params.get("model", "ensemble")
     offset = int(request.query_params.get("offset", "0"))
     limit = int(request.query_params.get("limit", "150"))
 
@@ -211,7 +248,20 @@ async def handle_replay(request: Request) -> JSONResponse:
     total_steps = len(df)
 
     slice_df = df.iloc[offset : offset + limit].copy().reset_index(drop=True)
-    frames = [serialize_frame(row, offset + i, total_steps) for i, row in slice_df.iterrows()]
+
+    # Compute model predictions for the active model architecture
+    model_preds = MODEL_ENGINE.predict_for_clip(slice_df, model_id=model_id)
+
+    frames = [
+        serialize_frame(
+            row,
+            offset + i,
+            total_steps,
+            pred_override=model_preds[i] if i < len(model_preds) else None,
+            model_id=model_id,
+        )
+        for i, row in slice_df.iterrows()
+    ]
 
     # Aggregated candles for multi-step view
     candle_steps = int(request.query_params.get("candle_steps", "1"))
@@ -220,6 +270,7 @@ async def handle_replay(request: Request) -> JSONResponse:
 
     return JSONResponse({
         "scenario": scenario,
+        "model": model_id,
         "offset": offset,
         "limit": limit,
         "total_steps": total_steps,
@@ -234,6 +285,7 @@ async def handle_replay(request: Request) -> JSONResponse:
 
 routes = [
     Route("/api/health", handle_health, methods=["GET"]),
+    Route("/api/models", handle_models, methods=["GET"]),
     Route("/api/scenarios", handle_scenarios, methods=["GET"]),
     Route("/api/replay", handle_replay, methods=["GET"]),
 ]

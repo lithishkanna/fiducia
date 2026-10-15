@@ -1,16 +1,19 @@
 import React, { useState } from 'react'
-import type { ReplayFrame } from '../types/replay'
+import type { ModelInfo, ReplayFrame } from '../types/replay'
 
 interface DiagnosticPanelProps {
   frame: ReplayFrame | null
+  models?: ModelInfo[]
+  selectedModelId?: string
 }
 
-export const DiagnosticPanel: React.FC<DiagnosticPanelProps> = ({ frame }) => {
-  const [activeTab, setActiveTab] = useState<'narrative' | 'shap' | 'pipeline'>('narrative')
+export const DiagnosticPanel: React.FC<DiagnosticPanelProps> = ({ frame, models = [], selectedModelId = 'ensemble' }) => {
+  const [activeTab, setActiveTab] = useState<'narrative' | 'shap' | 'pipeline' | 'models'>('narrative')
 
   if (!frame) return null
 
   const { diagnostic_summary, active_walls, shap_features, mid_price } = frame
+  const currentModel = models.find((m) => m.id === selectedModelId)
 
   return (
     <div className="tabs-container">
@@ -32,6 +35,12 @@ export const DiagnosticPanel: React.FC<DiagnosticPanelProps> = ({ frame }) => {
           onClick={() => setActiveTab('pipeline')}
         >
           📐 SYSTEM & CALIBRATION PIPELINE
+        </button>
+        <button
+          className={`tab-btn ${activeTab === 'models' ? 'active' : ''}`}
+          onClick={() => setActiveTab('models')}
+        >
+          🤖 MODEL ARCHITECTURES & BENCHMARK
         </button>
       </div>
 
@@ -166,7 +175,116 @@ export const DiagnosticPanel: React.FC<DiagnosticPanelProps> = ({ frame }) => {
             </div>
           </div>
         )}
+
+        {activeTab === 'models' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            {/* Active Model Spotlight */}
+            {currentModel && (
+              <div
+                className="swiss-card"
+                style={{
+                  padding: '12px 16px',
+                  background: 'rgba(59, 130, 246, 0.05)',
+                  border: '1px solid rgba(59, 130, 246, 0.3)',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                }}
+              >
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontSize: '13px', fontWeight: 700, color: '#F8FAFC' }}>
+                      {currentModel.name}
+                    </span>
+                    <span className="badge" style={{ fontSize: '10px', background: '#1E293B', color: '#60A5FA', border: '1px solid #3B82F6', padding: '1px 6px', borderRadius: '3px' }}>
+                      {currentModel.badge}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '11px', color: '#94A3B8', marginTop: '3px' }}>
+                    {currentModel.description}
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '16px', fontFamily: 'var(--font-mono)', fontSize: '11px', textAlign: 'right' }}>
+                  <div>
+                    <div style={{ color: '#64748B', fontSize: '10px' }}>TEST ACCURACY</div>
+                    <div style={{ color: 'var(--accent-cyan)', fontWeight: 700, fontSize: '14px' }}>
+                      {(currentModel.accuracy * 100).toFixed(1)}%
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ color: '#64748B', fontSize: '10px' }}>MACRO F1</div>
+                    <div style={{ color: 'var(--accent-emerald)', fontWeight: 700, fontSize: '14px' }}>
+                      {currentModel.macro_f1.toFixed(3)}
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ color: '#64748B', fontSize: '10px' }}>BRIER SCORE</div>
+                    <div style={{ color: '#F59E0B', fontWeight: 700, fontSize: '14px' }}>
+                      {currentModel.brier_score.toFixed(4)}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Benchmark Comparison Table */}
+            <div className="swiss-card" style={{ padding: '14px' }}>
+              <div className="card-title">Full Microstructure Model Comparison Benchmark</div>
+              <table className="swiss-table" style={{ marginTop: '8px' }}>
+                <thead>
+                  <tr>
+                    <th>MODEL ARCHITECTURE</th>
+                    <th>TYPE / MECHANISM</th>
+                    <th style={{ textAlign: 'center' }}>TEST ACCURACY</th>
+                    <th style={{ textAlign: 'center' }}>MACRO F1</th>
+                    <th style={{ textAlign: 'center' }}>BRIER SCORE</th>
+                    <th>STATUS</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {models.map((m) => {
+                    const isSelected = m.id === selectedModelId
+                    return (
+                      <tr
+                        key={m.id}
+                        style={{
+                          background: isSelected ? 'rgba(59, 130, 246, 0.12)' : 'transparent',
+                          fontWeight: isSelected ? 600 : 400,
+                        }}
+                      >
+                        <td style={{ color: isSelected ? '#60A5FA' : '#F1F5F9' }}>
+                          {m.name}
+                        </td>
+                        <td style={{ color: '#94A3B8', fontSize: '11px' }}>
+                          {m.architecture}
+                        </td>
+                        <td style={{ textAlign: 'center', color: 'var(--accent-cyan)', fontFamily: 'var(--font-mono)' }}>
+                          {(m.accuracy * 100).toFixed(1)}%
+                        </td>
+                        <td style={{ textAlign: 'center', color: 'var(--accent-emerald)', fontFamily: 'var(--font-mono)' }}>
+                          {m.macro_f1.toFixed(3)}
+                        </td>
+                        <td style={{ textAlign: 'center', color: '#F59E0B', fontFamily: 'var(--font-mono)' }}>
+                          {m.brier_score.toFixed(4)}
+                        </td>
+                        <td>
+                          {isSelected ? (
+                            <span style={{ color: '#10B981', fontWeight: 700, fontSize: '10px' }}>● ACTIVE</span>
+                          ) : (
+                            <span style={{ color: '#64748B', fontSize: '10px' }}>READY</span>
+                          )}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
       </div>
     </div>
+
   )
 }

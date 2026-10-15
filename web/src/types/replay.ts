@@ -62,11 +62,24 @@ export interface Scenario {
   description: string
 }
 
+export interface ModelInfo {
+  id: string
+  name: string
+  architecture: string
+  accuracy: number
+  macro_f1: number
+  brier_score: number
+  badge: string
+  description: string
+}
+
 export interface ReplayResponse {
   scenario: string
+  model?: string
   offset: number
   limit: number
   total_steps: number
   frames: ReplayFrame[]
   candles: any[]
 }
+

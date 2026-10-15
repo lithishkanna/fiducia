@@ -1,11 +1,14 @@
 import React from 'react'
-import { Play, Pause, ChevronLeft, ChevronRight, RotateCcw } from 'lucide-react'
-import type { Scenario } from '../types/replay'
+import { Play, Pause, ChevronLeft, ChevronRight, RotateCcw, Cpu } from 'lucide-react'
+import type { ModelInfo, Scenario } from '../types/replay'
 
 interface ControlsProps {
   scenarios: Scenario[]
   selectedScenarioId: string
   onSelectScenario: (id: string) => void
+  models: ModelInfo[]
+  selectedModelId: string
+  onSelectModel: (id: string) => void
   currentStep: number
   totalSteps: number
   onStepChange: (step: number) => void
@@ -25,6 +28,9 @@ export const Controls: React.FC<ControlsProps> = ({
   scenarios,
   selectedScenarioId,
   onSelectScenario,
+  models,
+  selectedModelId,
+  onSelectModel,
   currentStep,
   totalSteps,
   onStepChange,
@@ -39,8 +45,37 @@ export const Controls: React.FC<ControlsProps> = ({
   costHurdleBps,
   onChangeCostHurdleBps,
 }) => {
+  const activeModel = models.find((m) => m.id === selectedModelId)
+
   return (
     <div className="controls-panel">
+      {/* 0. Model Architecture Selector */}
+      <div>
+        <div className="control-group-title" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <Cpu size={12} style={{ color: 'var(--accent-blue)' }} />
+          <span>Model Architecture</span>
+        </div>
+        <select
+          className="swiss-select"
+          value={selectedModelId}
+          onChange={(e) => onSelectModel(e.target.value)}
+          style={{ marginBottom: '6px', fontWeight: 600 }}
+        >
+          {models.map((m) => (
+            <option key={m.id} value={m.id}>
+              {m.name} [{m.badge}]
+            </option>
+          ))}
+        </select>
+        {activeModel && (
+          <div style={{ fontSize: '10px', color: '#94A3B8', fontFamily: 'var(--font-mono)', lineHeight: 1.4, padding: '4px 6px', background: 'rgba(255,255,255,0.02)', borderRadius: '3px', border: '1px solid var(--border-hairline)' }}>
+            <span style={{ color: 'var(--accent-cyan)', fontWeight: 600 }}>Acc: {(activeModel.accuracy * 100).toFixed(1)}%</span> |{' '}
+            <span style={{ color: 'var(--accent-emerald)', fontWeight: 600 }}>F1: {activeModel.macro_f1.toFixed(3)}</span> |{' '}
+            <span>Brier: {activeModel.brier_score.toFixed(3)}</span>
+          </div>
+        )}
+      </div>
+
       {/* 1. Feed / Scenario Selector */}
       <div>
         <div className="control-group-title">Data Feed Stream</div>

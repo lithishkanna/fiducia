@@ -5,12 +5,14 @@ import { MetricCards } from './components/MetricCards'
 import { HeatmapChart } from './components/HeatmapChart'
 import { Controls } from './components/Controls'
 import { DiagnosticPanel } from './components/DiagnosticPanel'
-import { fetchScenarios, fetchReplay } from './api/client'
-import type { Scenario, ReplayFrame } from './types/replay'
+import { fetchScenarios, fetchModels, fetchReplay } from './api/client'
+import type { Scenario, ModelInfo, ReplayFrame } from './types/replay'
 
 export function App() {
   const [scenarios, setScenarios] = useState<Scenario[]>([])
   const [selectedScenarioId, setSelectedScenarioId] = useState<string>('real_binance')
+  const [models, setModels] = useState<ModelInfo[]>([])
+  const [selectedModelId, setSelectedModelId] = useState<string>('ensemble')
   const [frames, setFrames] = useState<ReplayFrame[]>([])
   const [currentStep, setCurrentStep] = useState<number>(0)
   const [isLoading, setIsLoading] = useState<boolean>(true)
@@ -25,7 +27,7 @@ export function App() {
 
   const playTimerRef = useRef<number | null>(null)
 
-  // 1. Load available scenarios on mount
+  // 1. Load available scenarios and models on mount
   useEffect(() => {
     fetchScenarios()
       .then((data) => {
@@ -38,15 +40,26 @@ export function App() {
         console.error('Failed to load scenarios:', err)
         setError('Failed to connect to backend API server at localhost:8000.')
       })
+
+    fetchModels()
+      .then((data) => {
+        setModels(data)
+        if (data.length > 0) {
+          setSelectedModelId(data[0].id)
+        }
+      })
+      .catch((err) => {
+        console.error('Failed to load models:', err)
+      })
   }, [])
 
-  // 2. Load replay frames whenever selected scenario changes
-  const loadScenarioData = useCallback(async (scenarioId: string) => {
+  // 2. Load replay frames whenever selected scenario OR selected model changes
+  const loadScenarioData = useCallback(async (scenarioId: string, modelId: string) => {
     setIsLoading(true)
     setError(null)
     setIsPlaying(false)
     try {
-      const data = await fetchReplay(scenarioId, 0, 160)
+      const data = await fetchReplay(scenarioId, 0, 160, 1, modelId)
       setFrames(data.frames)
       setCurrentStep(0)
     } catch (err: any) {
@@ -58,10 +71,10 @@ export function App() {
   }, [])
 
   useEffect(() => {
-    if (selectedScenarioId) {
-      loadScenarioData(selectedScenarioId)
+    if (selectedScenarioId && selectedModelId) {
+      loadScenarioData(selectedScenarioId, selectedModelId)
     }
-  }, [selectedScenarioId, loadScenarioData])
+  }, [selectedScenarioId, selectedModelId, loadScenarioData])
 
   // 3. Playback timer
   useEffect(() => {
@@ -113,7 +126,7 @@ export function App() {
       ) : isLoading ? (
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '400px', color: '#94A3B8', fontFamily: 'var(--font-mono)' }}>
           <span className="status-dot" style={{ marginRight: '10px' }}></span>
-          STREAMING BINANCE FUTURES L2 REPLAY & INFERENCE FRAMES...
+          STREAMING BINANCE FUTURES L2 REPLAY & INFERENCE FRAMES ({selectedModelId.toUpperCase()})...
         </div>
       ) : (
         <>
@@ -142,6 +155,9 @@ export function App() {
               scenarios={scenarios}
               selectedScenarioId={selectedScenarioId}
               onSelectScenario={setSelectedScenarioId}
+              models={models}
+              selectedModelId={selectedModelId}
+              onSelectModel={setSelectedModelId}
               currentStep={currentStep}
               totalSteps={frames.length}
               onStepChange={setCurrentStep}
@@ -158,8 +174,12 @@ export function App() {
             />
           </div>
 
-          {/* Diagnostic "Why?" Panel */}
-          <DiagnosticPanel frame={currentFrame} />
+          {/* Diagnostic "Why?" Panel with Model Architecture Tab */}
+          <DiagnosticPanel
+            frame={currentFrame}
+            models={models}
+            selectedModelId={selectedModelId}
+          />
 
           {/* Regulatory & Institutional Non-Causal Disclaimer */}
           <div className="disclaimer-bar">
