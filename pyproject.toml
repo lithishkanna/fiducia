@@ -38,10 +38,6 @@ dev = [
     "mypy>=1.8.0",
 ]
 
-[tool.setuptools.packages.find]
-include = ["book*", "recorder*", "features*", "models*", "eval*", "explain*", "dashboard*"]
-exclude = ["ben*", "data*", "configs*", "notebooks*", "docs*", "tests*"]
-
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = "test_*.py"

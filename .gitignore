@@ -49,3 +49,4 @@ data/interim/*
 data/processed/*
 !data/processed/.gitkeep
 *.log
+*.csv

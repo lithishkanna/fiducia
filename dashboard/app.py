@@ -21,14 +21,6 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
-import sys
-from pathlib import Path
-
-# Ensure repo root is on sys.path when running from inside dashboard/ directory
-REPO_ROOT = Path(__file__).resolve().parent.parent
-if str(REPO_ROOT) not in sys.path:
-    sys.path.insert(0, str(REPO_ROOT))
-
 from dashboard.sample_data import load_sample_clip
 from explain.templates import STANDARD_DISCLAIMER
 
