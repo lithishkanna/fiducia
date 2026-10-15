@@ -435,7 +435,7 @@ def main() -> None:
         unsafe_allow_html=True,
     )
     prob_fig = build_calibrated_probability_bar(p_down, p_neutral, p_up)
-    st.plotly_chart(prob_fig, use_container_width=True, config={"displayModeBar": False})
+    st.plotly_chart(prob_fig, width="stretch", config={"displayModeBar": False})
 
     # -----------------------------------------------------------------------
     # Composite Candlestick + Heatmap Main Chart
@@ -453,7 +453,7 @@ def main() -> None:
                 candle_steps=candle_steps,
                 view_mode="plain",
             )
-            st.plotly_chart(fig_plain, use_container_width=True, config={"displayModeBar": False})
+            st.plotly_chart(fig_plain, width="stretch", config={"displayModeBar": False})
         with col_trust:
             st.caption("LIQUIDITY TRUST COMPOSITE")
             fig_trust = build_composite_candle_heatmap(
@@ -463,7 +463,7 @@ def main() -> None:
                 candle_steps=candle_steps,
                 view_mode="trust",
             )
-            st.plotly_chart(fig_trust, use_container_width=True, config={"displayModeBar": False})
+            st.plotly_chart(fig_trust, width="stretch", config={"displayModeBar": False})
     else:
         fig = build_composite_candle_heatmap(
             clip_df,
@@ -472,7 +472,7 @@ def main() -> None:
             candle_steps=candle_steps,
             view_mode=view_mode,
         )
-        st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+        st.plotly_chart(fig, width="stretch", config={"displayModeBar": False})
 
     # -----------------------------------------------------------------------
     # Diagnostic "Why?" Panel
@@ -533,7 +533,7 @@ def main() -> None:
                         }
                     )
                 st.dataframe(
-                    pd.DataFrame(wall_table_data), hide_index=True, use_container_width=True
+                    pd.DataFrame(wall_table_data), hide_index=True, width="stretch"
                 )
             else:
                 st.info("No dominant liquidity walls detected in top 10 depth levels.")
@@ -556,7 +556,7 @@ def main() -> None:
             ]
             st.plotly_chart(
                 build_shap_bar_chart(shap_features),
-                use_container_width=True,
+                width="stretch",
                 config={"displayModeBar": False},
             )
 
